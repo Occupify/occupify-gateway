@@ -1,0 +1,188 @@
+server:
+  port: ${SERVER_PORT:8180}
+
+spring:
+  application:
+    name: occupify-gateway
+  config:
+    import: optional:file:.env[.properties]
+
+  cloud:
+    gateway:
+      routes:
+        # Core Marketplace Service (:8182)
+        - id: core-service
+          uri: ${SERVICES_CORE_URL:http://localhost:8182}
+          predicates:
+            - Path=/projects/**, /applications/**, /reviews/**, /bids/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, HEAD
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+            - name: CircuitBreaker
+              args:
+                name: coreCircuitBreaker
+                fallbackUri: forward:/fallback/core
+
+        # Payment Service (:8183)
+        - id: payment-service
+          uri: ${SERVICES_PAYMENT_URL:http://localhost:8183}
+          predicates:
+            - Path=/contracts/**, /wallets/**, /payments/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, HEAD
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+            - name: CircuitBreaker
+              args:
+                name: paymentCircuitBreaker
+                fallbackUri: forward:/fallback/payment
+
+        # Notification Service (:8184)
+        - id: notification-service
+          uri: ${SERVICES_NOTIFICATION_URL:http://localhost:8184}
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, HEAD
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+            - name: CircuitBreaker
+              args:
+                name: notificationCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+
+        # Administration Service (:8185)
+        - id: administration-service
+          uri: ${SERVICES_ADMINISTRATION_URL:http://localhost:8185}
+          predicates:
+            - Path=/admin/**, /audit-logs/**, /reports/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, HEAD
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+            - name: CircuitBreaker
+              args:
+                name: adminCircuitBreaker
+                fallbackUri: forward:/fallback/administration
+
+        # Identity / Auth routes (:8181)
+        - id: auth-service
+          uri: ${SERVICES_AUTH_URL:http://localhost:8181}
+          predicates:
+            - Path=/auth/**, /account/**
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 3000ms
+        waitDurationInOpenState: 10000ms
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      coreCircuitBreaker:
+        baseConfig: default
+      paymentCircuitBreaker:
+        baseConfig: default
+      notificationCircuitBreaker:
+        baseConfig: default
+      adminCircuitBreaker:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5000ms
+    instances:
+      coreCircuitBreaker:
+        baseConfig: default
+      paymentCircuitBreaker:
+        baseConfig: default
+      notificationCircuitBreaker:
+        baseConfig: default
+      adminCircuitBreaker:
+        baseConfig: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Application Specific Security & JWT Properties
+app:
+  jwt:
+    secret: ${JWT_SECRET:secret-jwt-key-for-signing-must-be-long-enough-for-hs512-algorithm-minimum-64-bytes!}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+    refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+  security:
+    whitelisted-paths:
+      - /auth/**
+      - /actuator/**
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+      - /webjars/**
+      - /scalar/**
+      - /scalar
+      - /docs/**
+      - /docs
+      - /fallback/**
+    admin-restricted-paths:
+      - /admin/**
+      - /audit-logs/**
+      - /reports/**

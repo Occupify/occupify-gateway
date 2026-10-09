@@ -1,0 +1,29 @@
+SERVICES_CORE_URL: http://localhost:8182
+SERVICES_PAYMENT_URL: http://localhost:8183
+SERVICES_NOTIFICATION_URL: http://localhost:8184
+SERVICES_ADMINISTRATION_URL: http://localhost:8185
+SERVICES_AUTH_URL: http://localhost:8181
+CORS_ALLOWED_ORIGINS: http://localhost:3000
+
+app:
+  jwt:
+    secret: occupify-super-secret-jwt-signing-key-for-unit-testing-must-be-at-least-64-bytes-long!
+    access-token-expiration: 3600000
+    refresh-token-expiration: 604800000
+  security:
+    whitelisted-paths:
+      - /auth/**
+      - /actuator/**
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+      - /webjars/**
+      - /scalar/**
+      - /scalar
+      - /docs/**
+      - /docs
+      - /fallback/**
+    admin-restricted-paths:
+      - /admin/**
+      - /audit-logs/**
+      - /reports/**
