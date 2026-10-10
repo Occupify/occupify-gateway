@@ -1,7 +1,7 @@
 package com.occupify.gateway.controller.gateway;
 
 import com.occupify.gateway.dto.base.ErrorResponse;
-import com.occupify.gateway.exception.system.SystemErrorCode;
+import com.occupify.gateway.exception.code.SystemErrorCode;
 import com.occupify.gateway.filter.CorrelationIdFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

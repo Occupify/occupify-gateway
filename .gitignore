@@ -36,5 +36,5 @@ build/
 *.tmp
 
 ### Environment files ###
-.env
+gateway.env
 !.env.example

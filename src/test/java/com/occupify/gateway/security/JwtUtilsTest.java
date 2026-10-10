@@ -1,9 +1,15 @@
 package com.occupify.gateway.security;
 
 import com.occupify.gateway.security.impl.JwtUtilsImpl;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,23 +18,38 @@ class JwtUtilsTest {
 
     // 64+ bytes secret for HS512
     private static final String TEST_SECRET = "occupify-super-secret-jwt-signing-key-for-unit-testing-must-be-at-least-64-bytes-long!";
-    private static final long ACCESS_EXPIRATION_MS = 60000; // 1 minute
-    private static final long REFRESH_EXPIRATION_MS = 120000; // 2 minutes
 
     private JwtUtils jwtUtils;
 
     @BeforeEach
     void setUp() {
-        jwtUtils = new JwtUtilsImpl(TEST_SECRET, ACCESS_EXPIRATION_MS, REFRESH_EXPIRATION_MS);
+        jwtUtils = new JwtUtilsImpl(TEST_SECRET);
+    }
+
+    private String createTestToken(String secret, String email, String userId, String role, long expirationDeltaMs) {
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(email)
+                .claim(JwtUtils.CLAIM_USER_ID, userId)
+                .claim(JwtUtils.CLAIM_ROLE, role)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + expirationDeltaMs))
+                .signWith(key, Jwts.SIG.HS512)
+                .compact();
+    }
+
+    private String createTestToken(String email, String userId, String role) {
+        return createTestToken(TEST_SECRET, email, userId, role, 60000);
     }
 
     @Test
-    void shouldGenerateAndValidateAccessToken() {
+    void shouldValidateTokenAndExtractClaimsFromValidToken() {
         String email = "candidate@occupify.com";
         String userId = UUID.randomUUID().toString();
         String role = "USER";
 
-        String token = jwtUtils.generateAccessToken(email, userId, role);
+        String token = createTestToken(email, userId, role);
 
         assertNotNull(token);
         assertTrue(jwtUtils.validateToken(token));
@@ -38,53 +59,14 @@ class JwtUtilsTest {
     }
 
     @Test
-    void shouldGenerateAndValidateRefreshToken() {
-        String email = "candidate@occupify.com";
-
-        String refreshToken = jwtUtils.generateRefreshToken(email);
-
-        assertNotNull(refreshToken);
-        assertTrue(jwtUtils.validateToken(refreshToken));
-        assertEquals(email, jwtUtils.extractEmail(refreshToken));
-    }
-
-    @Test
-    void shouldRejectExpiredToken() throws InterruptedException {
-        // Create JwtUtils with 1ms expiration
-        JwtUtils expiredJwtUtils = new JwtUtilsImpl(TEST_SECRET, 1, 1);
-        String token = expiredJwtUtils.generateAccessToken("test@occupify.com", "123", "USER");
-
-        Thread.sleep(50);
-
-        assertFalse(expiredJwtUtils.validateToken(token));
-    }
-
-    @Test
-    void shouldRejectTokenWithWrongSignature() {
-        String differentSecret = "different-secret-key-that-is-also-at-least-64-bytes-long-for-hs512-testing!!";
-        JwtUtils otherJwtUtils = new JwtUtilsImpl(differentSecret, ACCESS_EXPIRATION_MS, REFRESH_EXPIRATION_MS);
-
-        String token = otherJwtUtils.generateAccessToken("user@occupify.com", "456", "USER");
-
-        assertFalse(jwtUtils.validateToken(token));
-    }
-
-    @Test
-    void shouldRejectMalformedToken() {
-        assertFalse(jwtUtils.validateToken("not-a-valid-jwt-token"));
-        assertFalse(jwtUtils.validateToken(""));
-        assertFalse(jwtUtils.validateToken(null));
-    }
-
-    @Test
     void shouldExtractUserClaimsInSinglePass() {
         String email = "candidate@occupify.com";
         String userId = "user-12345";
         String role = "USER";
 
-        String token = jwtUtils.generateAccessToken(email, userId, role);
+        String token = createTestToken(email, userId, role);
 
-        java.util.Optional<UserClaims> claimsOpt = jwtUtils.extractUserClaims(token);
+        Optional<UserClaims> claimsOpt = jwtUtils.extractUserClaims(token);
         assertTrue(claimsOpt.isPresent());
         UserClaims claims = claimsOpt.get();
         assertEquals(email, claims.email());
@@ -93,18 +75,42 @@ class JwtUtilsTest {
     }
 
     @Test
-    void shouldFailFastWhenParametersAreBlank() {
-        assertThrows(IllegalArgumentException.class, () -> jwtUtils.generateAccessToken("", "user-1", "USER"));
-        assertThrows(IllegalArgumentException.class,
-                () -> jwtUtils.generateAccessToken("email@test.com", "   ", "USER"));
-        assertThrows(IllegalArgumentException.class,
-                () -> jwtUtils.generateAccessToken("email@test.com", "user-1", null));
-        assertThrows(IllegalArgumentException.class, () -> jwtUtils.generateRefreshToken("  "));
+    void shouldRejectExpiredToken() {
+        String token = createTestToken(TEST_SECRET, "test@occupify.com", "123", "USER", -5000);
+
+        assertFalse(jwtUtils.validateToken(token));
+        assertTrue(jwtUtils.parseClaimsIfValid(token).isEmpty());
+    }
+
+    @Test
+    void shouldRejectTokenWithWrongSignature() {
+        String differentSecret = "different-secret-key-that-is-also-at-least-64-bytes-long-for-hs512-testing!!";
+        String token = createTestToken(differentSecret, "user@occupify.com", "456", "USER", 60000);
+
+        assertFalse(jwtUtils.validateToken(token));
+        assertTrue(jwtUtils.parseClaimsIfValid(token).isEmpty());
+    }
+
+    @Test
+    void shouldRejectMalformedToken() {
+        assertFalse(jwtUtils.validateToken("not-a-valid-jwt-token"));
+        assertFalse(jwtUtils.validateToken(""));
+        assertFalse(jwtUtils.validateToken(null));
+        assertTrue(jwtUtils.parseClaimsIfValid("not-a-valid-jwt-token").isEmpty());
+        assertTrue(jwtUtils.parseClaimsIfValid("").isEmpty());
+        assertTrue(jwtUtils.parseClaimsIfValid(null).isEmpty());
+    }
+
+    @Test
+    void shouldFailFastWhenTokenIsBlankInParseClaims() {
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.parseClaims(""));
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.parseClaims("   "));
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.parseClaims(null));
     }
 
     @Test
     void shouldThrowExceptionWhenSecretIsTooShort() {
         assertThrows(IllegalArgumentException.class,
-                () -> new JwtUtilsImpl("too-short-secret", ACCESS_EXPIRATION_MS, REFRESH_EXPIRATION_MS));
+                () -> new JwtUtilsImpl("too-short-secret"));
     }
 }

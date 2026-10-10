@@ -1,4 +1,4 @@
-package com.occupify.gateway.exception.auth;
+package com.occupify.gateway.exception.code;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @RequiredArgsConstructor
-public enum AuthErrorCode {
+public enum CommonErrorCode {
 
     AUTH_000("AUTH_000", "Invalid email format", HttpStatus.BAD_REQUEST),
     AUTH_001("AUTH_001", "Email already exists in the system", HttpStatus.CONFLICT),
