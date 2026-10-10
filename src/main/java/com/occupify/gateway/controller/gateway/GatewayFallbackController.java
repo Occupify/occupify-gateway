@@ -2,7 +2,7 @@ package com.occupify.gateway.controller.gateway;
 
 import com.occupify.gateway.controller.AbstractBaseController;
 import com.occupify.gateway.dto.base.ErrorResponse;
-import com.occupify.gateway.exception.system.SystemErrorCode;
+import com.occupify.gateway.exception.code.SystemErrorCode;
 import com.occupify.gateway.filter.CorrelationIdFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;

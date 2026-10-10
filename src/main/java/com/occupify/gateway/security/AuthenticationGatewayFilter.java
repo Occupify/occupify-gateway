@@ -3,8 +3,8 @@ package com.occupify.gateway.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.occupify.gateway.config.SecurityProperties;
 import com.occupify.gateway.enums.UserRole;
-import com.occupify.gateway.exception.auth.AuthErrorCode;
-import com.occupify.gateway.exception.gateway.GlobalErrorWebExceptionHandler;
+import com.occupify.gateway.exception.code.CommonErrorCode;
+import com.occupify.gateway.exception.handler.GlobalErrorWebExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -88,21 +88,21 @@ public class AuthenticationGatewayFilter implements GlobalFilter, Ordered {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             log.warn("[Corr-{}] Missing or malformed Authorization header for path: {}", correlationId, path);
-            return errorHandler.writeError(exchange, HttpStatus.UNAUTHORIZED, MSG_MISSING_AUTH_HEADER, AuthErrorCode.AUTH_003.getCode());
+            return errorHandler.writeError(exchange, HttpStatus.UNAUTHORIZED, MSG_MISSING_AUTH_HEADER, CommonErrorCode.AUTH_003.getCode());
         }
 
         String token = authHeader.substring(BEARER_PREFIX.length()).trim();
         Optional<UserClaims> userClaimsOpt = jwtUtils.extractUserClaims(token);
         if (userClaimsOpt.isEmpty()) {
             log.warn("[Corr-{}] Invalid or expired JWT token for path: {}", correlationId, path);
-            return errorHandler.writeError(exchange, HttpStatus.UNAUTHORIZED, MSG_INVALID_JWT_TOKEN, AuthErrorCode.AUTH_005.getCode());
+            return errorHandler.writeError(exchange, HttpStatus.UNAUTHORIZED, MSG_INVALID_JWT_TOKEN, CommonErrorCode.AUTH_005.getCode());
         }
 
         UserClaims claims = userClaimsOpt.get();
         if (isAdminRouteRestricted(path, claims.role())) {
             log.warn("[Corr-{}] Access denied to admin endpoint [{}] for user [id={}, email={}] with role [{}]",
                     correlationId, path, claims.userId(), claims.email(), claims.role());
-            return errorHandler.writeError(exchange, HttpStatus.FORBIDDEN, MSG_ACCESS_DENIED_ADMIN, AuthErrorCode.USER_007.getCode());
+            return errorHandler.writeError(exchange, HttpStatus.FORBIDDEN, MSG_ACCESS_DENIED_ADMIN, CommonErrorCode.USER_007.getCode());
         }
 
         ServerHttpRequest mutatedRequest = mutateRequestWithClaims(request, claims);

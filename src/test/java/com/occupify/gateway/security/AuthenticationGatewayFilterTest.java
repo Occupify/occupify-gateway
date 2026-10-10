@@ -13,6 +13,12 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,9 +35,21 @@ class AuthenticationGatewayFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtUtils = new JwtUtilsImpl(TEST_SECRET, 60000, 120000);
+        jwtUtils = new JwtUtilsImpl(TEST_SECRET);
         objectMapper = new ObjectMapper();
         filter = new AuthenticationGatewayFilter(jwtUtils, objectMapper);
+    }
+
+    private String createTestToken(String email, String userId, String role) {
+        SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject(email)
+                .claim(JwtUtils.CLAIM_USER_ID, userId)
+                .claim(JwtUtils.CLAIM_ROLE, role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 60000))
+                .signWith(key, Jwts.SIG.HS512)
+                .compact();
     }
 
     @Test
@@ -141,7 +159,7 @@ class AuthenticationGatewayFilterTest {
         String email = "john.doe@occupify.com";
         String userId = UUID.randomUUID().toString();
         String role = "USER";
-        String validToken = jwtUtils.generateAccessToken(email, userId, role);
+        String validToken = createTestToken(email, userId, role);
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/projects/100")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
@@ -171,7 +189,7 @@ class AuthenticationGatewayFilterTest {
 
     @Test
     void shouldRejectNonAdminForAdminEndpointWith403() {
-        String token = jwtUtils.generateAccessToken("user@occupify.com", "123", "USER");
+        String token = createTestToken("user@occupify.com", "123", "USER");
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/admin/audit-logs")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -192,7 +210,7 @@ class AuthenticationGatewayFilterTest {
 
     @Test
     void shouldAllowAdminForAdminEndpoint() {
-        String adminToken = jwtUtils.generateAccessToken("admin@occupify.com", "999", "ADMIN");
+        String adminToken = createTestToken("admin@occupify.com", "999", "ADMIN");
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/admin/audit-logs")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -238,7 +256,7 @@ class AuthenticationGatewayFilterTest {
 
     @Test
     void shouldRejectNonAdminForAuditLogsAndReportsEndpointsWith403() {
-        String token = jwtUtils.generateAccessToken("user@occupify.com", "123", "USER");
+        String token = createTestToken("user@occupify.com", "123", "USER");
 
         for (String restrictedPath : List.of("/audit-logs/recent", "/reports/monthly")) {
             MockServerHttpRequest request = MockServerHttpRequest.get(restrictedPath)
@@ -262,7 +280,7 @@ class AuthenticationGatewayFilterTest {
 
     @Test
     void shouldRejectNonAdminForAdminEndpointWithoutTrailingSlashWith403() {
-        String token = jwtUtils.generateAccessToken("user@occupify.com", "123", "USER");
+        String token = createTestToken("user@occupify.com", "123", "USER");
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/admin")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)

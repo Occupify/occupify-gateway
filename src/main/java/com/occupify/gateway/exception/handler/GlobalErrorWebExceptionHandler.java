@@ -1,4 +1,4 @@
-package com.occupify.gateway.exception.gateway;
+package com.occupify.gateway.exception.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

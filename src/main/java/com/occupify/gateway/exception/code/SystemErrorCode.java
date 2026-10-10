@@ -1,4 +1,4 @@
-package com.occupify.gateway.exception.system;
+package com.occupify.gateway.exception.code;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
