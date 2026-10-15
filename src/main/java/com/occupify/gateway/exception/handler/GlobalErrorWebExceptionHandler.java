@@ -27,7 +27,6 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 @Component
 @Order(GlobalErrorWebExceptionHandler.ORDER)
-@RequiredArgsConstructor
 public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler {
 
     // Higher precedence than default Spring WebFlux ErrorWebExceptionHandler (ORDER = -1)
@@ -41,6 +40,10 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
     private static final String DEFAULT_UNEXPECTED_ERROR_MSG = "Unexpected gateway error";
 
     private final ObjectMapper objectMapper;
+
+    public GlobalErrorWebExceptionHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
