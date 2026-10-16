@@ -20,6 +20,7 @@
     <properties>
         <java.version>25</java.version>
         <spring-framework.version>6.2.7</spring-framework.version>
+        <reactor-bom.version>2024.0.0</reactor-bom.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <maven.compiler.release>25</maven.compiler.release>
         <jjwt.version>0.12.6</jjwt.version>
