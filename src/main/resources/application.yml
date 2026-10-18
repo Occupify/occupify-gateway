@@ -100,7 +100,7 @@ spring:
         - id: auth-service
           uri: ${SERVICES_AUTH_URL:http://localhost:8181}
           predicates:
-            - Path=/auth/**, /account/**
+            - Path=/auth/**, /account/**, /users/**, /user/**
 
       globalcors:
         cors-configurations:
@@ -184,6 +184,8 @@ app:
       - /docs/**
       - /docs
       - /fallback/**
+      - /user/institutions
+      - /users/institutions
     admin-restricted-paths:
       - /admin/**
       - /audit-logs/**
