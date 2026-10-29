@@ -117,6 +117,13 @@ spring:
             allowCredentials: true
             maxAge: 3600
 
+      httpclient:
+        pool:
+          type: ELASTIC
+          max-idle-time: 5s
+          max-life-time: 30s
+          eviction-interval: 5s
+
 resilience4j:
   circuitbreaker:
     configs:
