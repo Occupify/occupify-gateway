@@ -16,7 +16,7 @@ spring:
         - id: core-service
           uri: ${SERVICES_CORE_URL:http://localhost:8182}
           predicates:
-            - Path=/projects/**, /applications/**, /reviews/**, /bids/**
+            - Path=/projects/**, /applications/**, /reviews/**, /contracts/**, /bids/**, /jobs/**
           filters:
             - name: Retry
               args:
@@ -37,7 +37,7 @@ spring:
         - id: payment-service
           uri: ${SERVICES_PAYMENT_URL:http://localhost:8183}
           predicates:
-            - Path=/contracts/**, /wallets/**, /payments/**
+            - Path=/wallets/**, /payments/**
           filters:
             - name: Retry
               args:
@@ -101,6 +101,12 @@ spring:
           uri: ${SERVICES_AUTH_URL:http://localhost:8181}
           predicates:
             - Path=/auth/**, /account/**, /users/**, /user/**
+
+        # AI / Agentic Service (:8186) - streaming without timeout
+        - id: ai-service
+          uri: ${SERVICES_AI_URL:http://localhost:8186}
+          predicates:
+            - Path=/ai/**
 
       globalcors:
         cors-configurations:
