@@ -102,6 +102,12 @@ spring:
           predicates:
             - Path=/auth/**, /account/**, /users/**, /user/**
 
+        # AI / Agentic Service (:8186) - streaming without timeout
+        - id: ai-service
+          uri: ${SERVICES_AI_URL:http://localhost:8186}
+          predicates:
+            - Path=/ai/**
+
       globalcors:
         cors-configurations:
           '[/**]':
