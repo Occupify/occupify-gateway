@@ -124,6 +124,8 @@ spring:
             maxAge: 3600
 
       httpclient:
+        connect-timeout: 10000
+        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:10m}
         pool:
           type: ELASTIC
           max-idle-time: 5s
