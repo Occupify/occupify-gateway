@@ -70,6 +70,12 @@ class GatewayFallbackControllerTest {
         ResponseEntity<ErrorResponse> adminResponse = controller.serviceFallback("admin", adminExchange).block();
         assertNotNull(adminResponse);
         assertTrue(adminResponse.getBody().message().contains("Administration service is temporarily unavailable"));
+
+        MockServerHttpRequest agenticRequest = MockServerHttpRequest.get("/fallback/agentic").build();
+        MockServerWebExchange agenticExchange = MockServerWebExchange.from(agenticRequest);
+        ResponseEntity<ErrorResponse> agenticResponse = controller.serviceFallback("agentic", agenticExchange).block();
+        assertNotNull(agenticResponse);
+        assertTrue(agenticResponse.getBody().message().contains("Agentic service is temporarily unavailable"));
     }
 
     @Test

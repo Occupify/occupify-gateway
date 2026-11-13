@@ -84,6 +84,7 @@ public class GatewayFallbackController extends AbstractBaseController {
             case "payment" -> "Payment service";
             case "notification", "noti" -> "Notification service";
             case "administration", "admin" -> "Administration service";
+            case "agentic", "ai" -> "Agentic service";
             default -> Character.toUpperCase(rawService.charAt(0)) + rawService.substring(1) + " service";
         };
     }
