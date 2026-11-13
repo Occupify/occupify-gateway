@@ -96,6 +96,27 @@ spring:
                 name: adminCircuitBreaker
                 fallbackUri: forward:/fallback/administration
 
+        # Agentic Service (:8186)
+        - id: agentic-service
+          uri: ${SERVICES_AGENTIC_URL:http://localhost:8186}
+          predicates:
+            - Path=/agentic/**, /ai/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE, GATEWAY_TIMEOUT
+                methods: GET, HEAD
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
+                  basedOnPreviousValue: true
+            - name: CircuitBreaker
+              args:
+                name: agenticCircuitBreaker
+                fallbackUri: forward:/fallback/agentic
+
         # Identity / Auth routes (:8181)
         - id: auth-service
           uri: ${SERVICES_AUTH_URL:http://localhost:8181}
@@ -139,10 +160,14 @@ resilience4j:
         baseConfig: default
       adminCircuitBreaker:
         baseConfig: default
+      agenticCircuitBreaker:
+        baseConfig: default
   timelimiter:
     configs:
       default:
         timeoutDuration: 5000ms
+      streaming:
+        timeoutDuration: 600000ms
     instances:
       coreCircuitBreaker:
         baseConfig: default
@@ -152,6 +177,8 @@ resilience4j:
         baseConfig: default
       adminCircuitBreaker:
         baseConfig: default
+      agenticCircuitBreaker:
+        baseConfig: streaming
 
 management:
   endpoints:
