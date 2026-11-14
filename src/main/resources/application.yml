@@ -16,7 +16,7 @@ spring:
         - id: core-service
           uri: ${SERVICES_CORE_URL:http://localhost:8182}
           predicates:
-            - Path=/projects/**, /applications/**, /reviews/**, /bids/**
+            - Path=/projects/**, /applications/**, /reviews/**, /contracts/**, /bids/**, /jobs/**
           filters:
             - name: Retry
               args:
@@ -37,7 +37,7 @@ spring:
         - id: payment-service
           uri: ${SERVICES_PAYMENT_URL:http://localhost:8183}
           predicates:
-            - Path=/contracts/**, /wallets/**, /payments/**
+            - Path=/wallets/**, /payments/**
           filters:
             - name: Retry
               args:
@@ -121,7 +121,13 @@ spring:
         - id: auth-service
           uri: ${SERVICES_AUTH_URL:http://localhost:8181}
           predicates:
-            - Path=/auth/**, /account/**
+            - Path=/auth/**, /account/**, /users/**, /user/**
+
+        # AI / Agentic Service (:8186) - streaming without timeout
+        - id: ai-service
+          uri: ${SERVICES_AI_URL:http://localhost:8186}
+          predicates:
+            - Path=/ai/**
 
       globalcors:
         cors-configurations:
@@ -137,6 +143,15 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+
+      httpclient:
+        connect-timeout: 10000
+        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:10m}
+        pool:
+          type: ELASTIC
+          max-idle-time: 5s
+          max-life-time: 30s
+          eviction-interval: 5s
 
 resilience4j:
   circuitbreaker:
@@ -212,6 +227,8 @@ app:
       - /docs
       - /fallback/**
       - /ai/cv-improvement/download/**
+      - /user/institutions
+      - /users/institutions
     admin-restricted-paths:
       - /admin/**
       - /audit-logs/**
