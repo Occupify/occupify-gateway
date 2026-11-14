@@ -211,6 +211,7 @@ app:
       - /docs/**
       - /docs
       - /fallback/**
+      - /ai/cv-improvement/download/**
     admin-restricted-paths:
       - /admin/**
       - /audit-logs/**
