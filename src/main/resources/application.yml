@@ -226,6 +226,7 @@ app:
       - /docs/**
       - /docs
       - /fallback/**
+      - /ai/cv-improvement/download/**
       - /user/institutions
       - /users/institutions
     admin-restricted-paths:

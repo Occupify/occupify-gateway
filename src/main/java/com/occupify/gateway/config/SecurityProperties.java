@@ -21,7 +21,8 @@ public class SecurityProperties {
             "/scalar",
             "/docs/**",
             "/docs",
-            "/fallback/**"
+            "/fallback/**",
+            "/ai/cv-improvement/download/**"
     ));
 
     private List<String> adminRestrictedPaths = new ArrayList<>(List.of(
