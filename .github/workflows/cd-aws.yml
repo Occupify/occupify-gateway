@@ -117,7 +117,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
           AWS_SECRET_GATEWAY_ID: ${{ secrets.AWS_SECRET_GATEWAY || 'occupify/prod/gateway' }}
         run: |
-          mkdir -p ~/.config/systemd/user/git-ops/compose
+          mkdir -p ~/.config/systemd/user/git-ops/services
           mkdir -p ~/.config/systemd/user/git-ops/env
           mkdir -p ~/.config/systemd/user/git-ops/nginx/logs
           mkdir -p ~/.config/systemd/user/git-ops/nginx/run
@@ -130,9 +130,9 @@ jobs:
             --query SecretString \
             --output text > ~/.config/systemd/user/git-ops/env/gateway.env
 
-          echo "Sync gateway compose, unit and nginx config..."
-          cp compose/docker.be.gateway.compose.yml ~/.config/systemd/user/git-ops/compose/
-          cp service/occupify-be-gateway.service ~/.config/systemd/user/
+          echo "Sync services manifests, systemd units, and nginx config..."
+          cp -rf services ~/.config/systemd/user/git-ops/
+          cp service/occupify-*.service ~/.config/systemd/user/
           cp nginx/default.conf ~/.config/systemd/user/git-ops/nginx/default.conf
 
       - name: Deploy Gateway Service
