@@ -114,10 +114,8 @@ jobs:
       - name: Sync Permanent Configs & Environment
         working-directory: gitops-manifests
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION || env.AWS_REGION }}
-          AWS_SECRET_GATEWAY_ID: ${{ secrets.AWS_SECRET_GATEWAY_NAME || secrets.AWS_SECRET_GATEWAY_ID || 'occupify/prod/gateway' }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
+          AWS_SECRET_GATEWAY_ID: ${{ secrets.AWS_SECRET_GATEWAY || 'occupify/prod/gateway' }}
         run: |
           mkdir -p ~/.config/systemd/user/git-ops/compose
           mkdir -p ~/.config/systemd/user/git-ops/env
