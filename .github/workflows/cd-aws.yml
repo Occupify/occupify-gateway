@@ -86,22 +86,11 @@ jobs:
 
     steps:
       - name: Checkout GitOps Manifests
-        id: checkout-gitops
-        uses: actions/checkout@v4
-        continue-on-error: true
-        with:
-          repository: ${{ env.GITOPS_REPO }}
-          path: gitops-manifests
-          ref: ${{ github.ref_name }}
-          token: ${{ secrets.GITOPS_PAT || github.token }}
-
-      - name: Fallback Checkout GitOps Main Manifests
-        if: steps.checkout-gitops.outcome != 'success'
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GITOPS_REPO }}
           path: gitops-manifests
-          ref: main
+          ref: main-aws
           token: ${{ secrets.GITOPS_PAT || github.token }}
 
       - name: Setup Rootless Podman Environment
