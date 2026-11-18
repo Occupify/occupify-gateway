@@ -106,7 +106,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
           AWS_SECRET_GATEWAY_ID: ${{ secrets.AWS_SECRET_GATEWAY || 'occupify/prod/gateway' }}
         run: |
-          mkdir -p ~/.config/systemd/user/git-ops/services/gateway
+          mkdir -p ~/.config/systemd/user/git-ops/compose/gateway
           mkdir -p ~/.config/systemd/user/git-ops/env
           mkdir -p ~/.config/systemd/user/git-ops/nginx/logs
           mkdir -p ~/.config/systemd/user/git-ops/nginx/run
@@ -120,7 +120,7 @@ jobs:
             --output text > ~/.config/systemd/user/git-ops/env/gateway.env
 
           echo "Sync gateway manifests, systemd unit, and nginx config..."
-          cp -rf services/gateway ~/.config/systemd/user/git-ops/services/
+          cp -rf compose/gateway ~/.config/systemd/user/git-ops/compose/
           cp service/occupify-be-gateway.service ~/.config/systemd/user/
           cp nginx/default.conf ~/.config/systemd/user/git-ops/nginx/default.conf
 
