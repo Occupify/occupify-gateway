@@ -82,57 +82,41 @@ jobs:
   deploy:
     name: Deploy Gateway Service (AWS)
     needs: build-and-push-ghcr
-    runs-on: [self-hosted, aws-gateway]
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout GitOps Manifests
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.GITOPS_REPO }}
-          path: gitops-manifests
-          ref: main-aws
-          token: ${{ secrets.GITOPS_PAT || github.token }}
-
-      - name: Setup Rootless Podman Environment
-        run: |
-          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-          export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
-          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
-          echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> "$GITHUB_ENV"
-
-      - name: Inject Environment Secrets
-        working-directory: gitops-manifests
+      - name: Deploy via Bastion SSH and GitOps
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
-          AWS_SECRET_GATEWAY_ID: ${{ secrets.AWS_SECRET_GATEWAY || 'occupify/prod/gateway' }}
+          BASTION_KEY: ${{ secrets.BASTION_SSH_KEY }}
+          BASTION_HOST: ${{ secrets.BASTION_HOST }}
+          SERVICE_NAME: gateway
+          AWS_REGION: ap-southeast-1
         run: |
-          mkdir -p ~/.config/systemd/user/git-ops/env
+          mkdir -p ~/.ssh
+          echo "$BASTION_KEY" > ~/.ssh/bastion.pem
+          chmod 600 ~/.ssh/bastion.pem
 
-          echo "Inject gateway.env from AWS Secrets Manager..."
-          aws secretsmanager get-secret-value \
-            --secret-id "$AWS_SECRET_GATEWAY_ID" \
-            --region "$AWS_REGION" \
-            --query SecretString \
-            --output text > ~/.config/systemd/user/git-ops/env/gateway.env
+          ssh -i ~/.ssh/bastion.pem -o StrictHostKeyChecking=accept-new ubuntu@$BASTION_HOST "ssh -o StrictHostKeyChecking=accept-new $SERVICE_NAME '
+            # 1. Fetch secret payload from AWS Secrets Manager
+            mkdir -p ~/gitops/env
+            aws secretsmanager get-secret-value \
+              --secret-id occupify/prod/$SERVICE_NAME \
+              --region ${{ env.AWS_REGION }} \
+              --query SecretString \
+              --output text > ~/gitops/env/$SERVICE_NAME.env
 
-      - name: Deploy Gateway Service
-        working-directory: gitops-manifests
-        env:
-          RUNNER_TRACKING_ID: ""
-        run: |
-          make be-gateway
+            # 2. Execute GitOps Makefile target
+            export DOCKER_HOST=unix:///run/podman/podman.sock
+            cd ~/gitops && make $SERVICE_NAME
 
-      - name: Verify Backend Service
-        run: |
-          sleep 5s
-          echo "===== CONTAINERS ====="
-          podman ps -a --filter name=occupify-gateway
-
-          echo "===== STATUS & EXIT CODE ====="
-          podman inspect occupify-gateway --format 'Status={{.State.Status}} ExitCode={{.State.ExitCode}}'
-
-          echo "===== RECENT LOGS ====="
-          podman logs --tail 50 occupify-gateway
-
-          echo "===== PORT MAPPING ====="
-          podman port occupify-gateway
+            # 3. Health verification on host port 8080
+            for i in {1..30}; do
+              if curl -sI http://127.0.0.1:8080 >/dev/null 2>&1; then
+                echo \"$SERVICE_NAME is UP and responding on port 8080\"
+                break
+              fi
+              sleep 2
+            done
+            curl -I http://127.0.0.1:8080 || true
+          '"
+          shred -u ~/.ssh/bastion.pem

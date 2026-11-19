@@ -102,9 +102,9 @@ spring:
           predicates:
             - Path=/auth/**, /account/**, /users/**, /user/**
 
-        # AI / Agentic Service (:8186) - streaming without timeout
+        # AI / Agentic Service - hosted on Oracle Cloud Server behind Nginx (/ai)
         - id: ai-service
-          uri: ${SERVICES_AI_URL:http://localhost:8186}
+          uri: ${SERVICES_AI_URL:http://140.245.47.21}
           predicates:
             - Path=/ai/**
 
