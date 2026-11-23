@@ -1,10 +1,11 @@
 name: Occupify Gateway CI flow
 
 on:
+  workflow_call:
   push:
-    branches: ["main", "OC-59"]
+    branches: ["main", "main-aws", "OC-59"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "main-aws"]
 
 jobs:
   build-and-test:
